@@ -1,5 +1,7 @@
 
-
+#prepare before coding
+install.packages("here")
+install.packages("tidyverse")
 
 library(here)
 library(tidyverse)
@@ -7,11 +9,14 @@ library(gganimate)
 library(plotly)
 library(htmlwidgets)
 
-library(readr)
-big_mac_source_data <- read_csv("study/course/psy6422da/final work/未命名文件夹/data/big-mac-source-data-v2.csv")
-df<-big_mac_source_data
+# Data Import
+source <-"https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/source-data/big-mac-source-data-v2.csv"
+col_names <- c("name","iso_a3","currency_code","local_price","dollar_ex","GDP_dollar","GDP_local","date")
+data <- read.csv(source, skip=1, fill=TRUE)
+colnames(data) <- col_names
+df<-data
 
-
+# Data Preparation
 library(dplyr)
 
 df <- df %>% 
@@ -63,15 +68,16 @@ p2 <- p1+ aes(text = paste("Local Price: ", local_price, currency_code))
 p2 <- ggplotly(p2) %>%
   layout(title = list(text = "<b>The Big Mac index</b>", x = 0.5),
          annotations = list(text = "<b>How much more expensive/cheaper is McDonald's in different countries than in the US?</b>", 
-                            x = 0.5, y = 1.04, xref = "paper", yref = "paper", showarrow = FALSE))
+                            x = 0.5, y = 1.06, xref = "paper", yref = "paper", showarrow = FALSE))
 ggplotly(p2)
 
+# USA data
 p3 <- ggplot(filter(df, country == "United States"),
-             mapping = aes(x = date, y = dollar_price, group = country, col = country))
+             mapping = aes(x = date, y = dollar_price, group = country, col = country))+
+  labs(title="The Big Mac Price Of USA", x="Year",y="Price(USD)",color = "Country")+
+  geom_point()+
+  geom_line()
+p3
 
-
-
-
-
-
+#ggsave
 saveWidget(ggplotly(p2), file='figs.html')
