@@ -1,0 +1,153 @@
+---
+title: "Untitled"
+output: pdf_document
+date: "2023-05-13"
+---
+
+# The Big Mac index
+
+The Big Mac Index is a price index published since 1986 by [The Economist](https://www.economist.com/finance-and-economics/1998/04/09/big-maccurrencies) as an informal way of measuring the purchasing power parity (PPP) between two currencies and providing a test of the extent to which market exchange rates result in goods costing the same in different countries.
+
+## Research Questions
+
+In simplified terms, we can compare price levels in different countries by using prices of burgers as a benchmark and considering their exchange rate ratios. This comparison helps us understand the trend of price changes and the purchasing power of different currencies.
+
+To achieve this, I have selected the prices of burgers in various countries and years. I converted these prices into US dollars and then calculated their ratios to the prices in the US. By doing so, we can observe the relative changes in prices and make comparisons between countries.
+
+There are two reasons for using the ratios to US prices instead of showing the dollar prices directly. Firstly, this approach helps mitigate the impact of inflation on the actual price trends by comparing the changes in US prices. Secondly, by blurring the specific prices, the trends of change and comparisons between countries become more prominent.
+
+I have chosen five representative countries or regions for this analysis: the UK, the US, China, Europe, and South Africa. The US has been selected as the benchmark for comparison due to the relatively stable growth of burger prices, which follows a consistent trend without significant fluctuations.
+
+## Data Origins
+
+Big Mac prices are from McDonald's directly and from reporting around the world; exchange rates are from Thomson Reuters (until January 2022) and Refinitiv Datastream (July 2022 on);The data I am using here has been preliminarily collated by [The Economist](https://github.com/TheEconomist/big-mac-data.git), who collate the specific currency exchange rates of different countries each year into their data.
+
+## Start Code
+
+> prepare before coding
+
+```{r }
+install.packages("here")
+install.packages("tidyverse")
+library(here)
+library(tidyverse)
+library(plotly)
+library(htmlwidgets)
+```
+
+
+### Data Import
+
+```{r }
+source <-"https://raw.githubusercontent.com/TheEconomist/big-mac-data/master/source-data/big-mac-source-data-v2.csv"
+col_names <- c("name","iso_a3","currency_code","local_price","dollar_ex","GDP_dollar","GDP_local","date")
+data <- read.csv(source, skip=1, fill=TRUE)
+colnames(data) <- col_names
+df<-data
+
+#see few raw data
+head(data)
+```
+
+### Data Preparation
+
+```{r }
+library(dplyr)
+df <- df %>% 
+  
+# Change data type  
+  mutate(
+    local_price = as.numeric(local_price), 
+    dollar_ex = as.numeric(dollar_ex),
+    date = as.Date(date, format = "%Y-%m-%d")
+  ) %>% 
+  
+# Organize data
+  rename(country = name) %>% 
+  select(date, country, local_price, currency_code, dollar_ex) %>% 
+  
+# Group data
+    filter(country %in% 
+           c("China", "Euro area", "South Africa", "United States", "Britain"))  %>% 
+  group_by(country)
+```
+
+> Add new value
+
+**1.dollar_price**
+
+Price of one Big Mac in dollars in different country
+
+```{r }
+df <- df %>%
+  mutate(dollar_price = local_price / dollar_ex)
+```
+
+**2.USD**
+
+Big Mac index(relative to the US dollar)=dollar_price/USA_price-1
+
+```{r }
+usa_data <- subset(df, country == "United States")
+df$USD <- NA  
+for (i in 1:nrow(df)) {
+  if (df$country[i] == "United States") {
+    df$USD[i] <- 0
+  } else {
+    usa_price <- usa_data$dollar_price[usa_data$date == df$date[i]]
+    df$USD[i] <- df$dollar_price[i] / usa_price - 1
+  }
+}
+#show few rows of the processed data
+head(df)
+```
+
+### Visualisation
+
+```{r}
+# Draw graph 
+p <- ggplot(df, mapping=aes(x=date, y=USD, group=country, col=country))
+p1<-p+geom_line(size=0.8)+
+  scale_color_viridis_d()+
+  labs(title="The Big Mac index", x="Year",y="Under/Over Valued",color = "Country") +
+  theme(plot.title = element_text(size = 20,face = "bold", family = "Arial"))+
+  theme(legend.title = element_text(size = 14,face = "bold", family = "Arial"))+
+  scale_x_date(date_labels = "%Y",date_breaks = "2 year")+
+  scale_y_continuous(labels = scales::percent, breaks = c(-0.2,-0.4,-0.6,-0.8,0, 0.2, 0.4, 0.6))
+```
+
+> ggplotly
+
+I chose to use this function because, if interested, we can see the specific prices in different countries at different times when click on the tabs to make a better comparison.
+
+```{r }
+# Edit labels
+p2 <- p1+ aes(text = paste("Local Price: ", local_price, currency_code))
+
+# Add subtitle
+p2 <- ggplotly(p2) %>%
+  layout(title = list(text = "<b>The Big Mac index</b>", x = 0.5),
+         annotations = list(text = "<b>How much more expensive/cheaper is McDonald's in different countries than in the US?</b>", 
+                            x = 0.5, y = 1.10, xref = "paper", yref = "paper", showarrow = FALSE))
+
+# Show graph
+ggplotly(p2)
+```
+
+In the charts we can see the trend of prices over time for a single country and also see how prices compare between different countries by comparing how much more expensive/cheaper a big mac is than the US by percentage. Using big mac data, we can see price comparisons and trends between different countries in an interesting way.
+
+> And here is Big Mac price trend in USA
+
+```{r}
+# USA data
+p3 <- ggplot(filter(df, country == "United States"),
+             mapping = aes(x = date, y = dollar_price, group = country, col = country))+
+  labs(title="The Big Mac Price Of USA", x="Year",y="Price(USD)",color = "Country")+
+  geom_point()+
+  geom_line()
+p3
+```
+
+## Summary
+
+During the semester, we have learnt about the initial handling of data and the plotting of graphs and charts. I generally got a good grasp of it, but I still didn't manage to get some details right, for example, when using the ggplotly() function, there was no way to display the originally set subtitle, and the subtitle set afterwards, when displayed elsewhere, might overlap with the title. Also, the colour of the lines could be a little more obvious. When the existing colour scheme is used, there is no way to adjust the legend, and if the order of the legends is adjusted it requires the use of a single colour, which I would like to address if I have more time.
