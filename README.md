@@ -22,6 +22,7 @@ Big Mac prices are from McDonald’s directly and from reporting around the worl
 ####  Visualization in Tableau
 
 https://public.tableau.com/views/Thebigmaxindex/Dashboard1?:language=zh-CN&:sid=&:redirect=auth&:display_count=n&:origin=viz_share_link
+
 This interactive map not only provides a more intuitive comparison of prices across different countries, but also allows for the adjustment of the time frame to showcase a more comprehensive view of the index over time.
 
 
